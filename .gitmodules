@@ -1,0 +1,6 @@
+[submodule "wnmp"]
+	path = wnmp
+	url = git://github.com/Xeoncross/wnmp.git
+[submodule "dokuwiki"]
+	path = dokuwiki
+	url = git://github.com/splitbrain/dokuwiki.git

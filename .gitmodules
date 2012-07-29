@@ -4,3 +4,6 @@
 [submodule "dokuwiki"]
 	path = dokuwiki
 	url = git://github.com/sabal/dokuwiki.git
+[submodule "fckgLite"]
+	path = fckgLite
+	url = git://github.com/sabal/fckgLite.git

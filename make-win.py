@@ -28,10 +28,9 @@ def main():
 
     # WNMP
     git_pipe = subprocess.Popen(['git',
-            '--git-dir={}'.format(
-                os.path.join(BASE_DIR, '.git', 'modules', 'wnmp')),
+            '--git-dir={}'.format(os.path.join(BASE_DIR, 'wnmp', '.git')),
             '--work-tree={}'.format(os.path.join(BASE_DIR, 'wnmp')),
-            'archive', 'master'],
+            'archive', 'sabal'],
         stdout=subprocess.PIPE)
     subprocess.Popen(['tar', '-x', '-C', TARGET_DIR],
         stdin=git_pipe.stdout).communicate()
@@ -39,12 +38,21 @@ def main():
     # DokuWiki
     os.makedirs(os.path.join(TARGET_DIR, 'nginx', 'www'), exist_ok=True)
     git_pipe = subprocess.Popen(['git',
-            '--git-dir={}'.format(
-                os.path.join(BASE_DIR, '.git', 'modules', 'dokuwiki')),
+            '--git-dir={}'.format(os.path.join(BASE_DIR, 'dokuwiki', '.git')),
             '--work-tree={}'.format(os.path.join(BASE_DIR, 'dokuwiki')),
-            'archive', 'master'],
+            'archive', 'sabal'],
         stdout=subprocess.PIPE)
     subprocess.Popen(['tar', '-x', '-C', '{}/nginx/www'.format(TARGET_DIR_)],
+        stdin=git_pipe.stdout).communicate()
+
+    # FCK
+    git_pipe = subprocess.Popen(['git',
+            '--git-dir={}'.format(os.path.join(BASE_DIR, 'fckgLite', '.git')),
+            '--work-tree={}'.format(os.path.join(BASE_DIR, 'fckgLite')),
+            'archive', 'sabal'],
+        stdout=subprocess.PIPE)
+    subprocess.Popen(['tar', '-x',
+            '-C', '{}/nginx/www/lib/plugins'.format(TARGET_DIR_)],
         stdin=git_pipe.stdout).communicate()
 
     # PHP
@@ -81,6 +89,8 @@ def main():
         for file_path in glob.glob(os.path.join(TARGET_DIR,
                 os.path.normpath(pattern))):
             cmd(['rm', '-rf', file_path.replace('\\', '/')])
+
+    # TODO: zip
 
 
 def cmd(tokens):

@@ -53,16 +53,39 @@ https://api.openmaru.com/delegate_key/springnote?app_id=71fcb7c8'''
 def main():
     bot = Fetcher()
     pages = json.loads(bot.fetch('/pages.json').decode('ascii'))
+    n_rev = n_att = 0
     print('\r{} / {} pages'.format(0, len(pages)), end='')
     for i, entry in enumerate(pages):
         id_ = entry['page']['identifier']
         bot.fetch('/pages/{}.json'.format(id_))
-        for resource in ['collaboration', 'comments', 'revisions']:
+        for resource in ['collaboration', 'comments']:
             bot.fetch('/pages/{}/{}.json'.format(id_, resource))
-        attachments = bot.fetch('/pages/{}/attachments.json'.format(id_))
-        if attachments:
-            for _ in json.loads(attachments.decode('ascii')):
-                bot.fetch('/pages/{}/attachments/{}'.format(id_, _['attachment']['identifier']))
+        data = bot.fetch('/pages/{}/revisions.json'.format(id_))
+        if data:
+            revisions = json.loads(data.decode('ascii'))
+            for k, _ in enumerate(revisions):
+                bot.fetch('/pages/{}/revisions/{}.json'.format(
+                    id_, _['revision']['identifier']))
+                print('\r{} / {} pages  {} / {} revisions  '
+                    '{} / {} attachments'.format(
+                        i + 1, len(pages),
+                        n_rev + k + 1, n_rev + len(revisions),
+                        n_att, n_att,
+                        ), end='')
+            n_rev += len(revisions)
+        data = bot.fetch('/pages/{}/attachments.json'.format(id_))
+        if data:
+            attachments = json.loads(data.decode('ascii'))
+            for k, _ in enumerate(attachments):
+                bot.fetch('/pages/{}/attachments/{}'.format(id_,
+                    _['attachment']['identifier']))
+                print('\r{} / {} pages  {} / {} revisions  '
+                    '{} / {} attachments'.format(
+                        i + 1, len(pages),
+                        n_rev, n_rev,
+                        n_att + k + 1, n_att + len(attachments),
+                        ), end='')
+            n_att += len(attachments)
         print('\r{} / {} pages'.format(i + 1, len(pages)), end='')
     print('')
     tags = json.loads(bot.fetch('/tags.json').decode('ascii'))

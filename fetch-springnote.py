@@ -1,11 +1,26 @@
 #!/usr/bin/env python3
+from __future__ import print_function
+
 import os
+import errno
 import sys
 
 import json
 
 from springnote import Springnote, SpringnoteException
 
+try:
+    raw_input
+    input = raw_input
+except: pass
+
+def makedirs(path, exist_ok=False):
+    try:
+        os.makedirs(path)
+    except OSError, e:
+        if e.errno == errno.EEXIST and exist_ok:
+            pass
+        else: raise
 
 class Fetcher:
     def __init__(self):
@@ -24,7 +39,7 @@ https://api.openmaru.com/delegate_key/springnote?app_id=71fcb7c8'''
         cache_path = os.path.normpath(self.SAVE_PATH + path)
         if os.access(cache_path, os.F_OK):
             return open(cache_path, 'rb').read()
-        os.makedirs(os.path.split(cache_path)[0], exist_ok=True)
+        makedirs(os.path.split(cache_path)[0], exist_ok=True)
         try:
             data = self.api._fetch('GET', path)
         except SpringnoteException as ex:

@@ -1,5 +1,8 @@
 import re
-from html.entities import entitydefs
+try:
+    from html.entities import entitydefs
+except ImportError:
+    from htmlentitydefs import entitydefs
 from xml.dom import Node
 
 

@@ -3,8 +3,14 @@ from cgi import escape
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from email.encoders import encode_noop
-from http.client import HTTPSConnection
-from urllib.parse import quote
+try:
+    from http.client import HTTPSConnection
+except ImportError:
+    from httplib import HTTPSConnection
+try:
+    from urllib.parse import quote
+except ImportError:
+    from urllib import quote
 from xml.dom.minidom import parseString, getDOMImplementation
 
 from .util import node2dict

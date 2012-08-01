@@ -2,7 +2,6 @@
 from __future__ import print_function
 
 import os
-import errno
 import sys
 
 import json
@@ -12,15 +11,16 @@ from springnote import Springnote, SpringnoteException
 try:
     raw_input
     input = raw_input
-except: pass
+except:
+    pass
+
 
 def makedirs(path, exist_ok=False):
     try:
         os.makedirs(path)
-    except OSError, e:
-        if e.errno == errno.EEXIST and exist_ok:
-            pass
-        else: raise
+    except OSError:
+        pass
+
 
 class Fetcher:
     def __init__(self):

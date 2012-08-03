@@ -11,7 +11,7 @@ import json
 # import phpserialize
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DOKUWIKI_ROOT = os.path.join(BASE_DIR, '_dokuwiki')
+DOKUWIKI_ROOT = os.path.join(BASE_DIR, 'dokuwiki')
 
 
 def _load(path):
@@ -32,7 +32,26 @@ def main():
     for i, entry in enumerate(pages):
         id_ = entry['page']['identifier']
         page = _load('pages/{}'.format(id_))
-        _save('pages/{}.xhtml'.format(id_), page['page']['source'])
+        xhtml = '''<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
+    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html version="-//W3C//DTD XHTML 1.1//EN"
+    xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.w3.org/1999/xhtml
+    http://www.w3.org/MarkUp/SCHEMA/xhtml11.xsd"
+    >
+  <head>
+    <title>{title}</title>
+  </head>
+  <body>
+    {body}
+  </body>
+</html>
+'''.format(
+            title=page['page']['title'],
+            body=page['page']['source'])
+        _save('pages/{}.xhtml'.format(id_), xhtml)
         # revision
         revisions = sorted(_load('pages/{}/revisions'.format(id_)),
                 key=lambda _:_['revision']['date_created'])

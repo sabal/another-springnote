@@ -94,8 +94,10 @@ def deploy_dokuwiki(rel_path):
     path_ = path.replace('\\', '/')
     makedirs(path, exist_ok=True)
     git_pipe = subprocess.Popen(['git',
-            '--git-dir={}'.format(os.path.join(BASE_DIR, 'dokuwiki', '.git')),
-            '--work-tree={}'.format(os.path.join(BASE_DIR, 'dokuwiki')),
+            '--git-dir={}'.format(
+                os.path.join(BASE_DIR, 'wiki', 'dokuwiki', '.git')),
+            '--work-tree={}'.format(
+                os.path.join(BASE_DIR, 'wiki', 'dokuwiki')),
             'archive', 'sabal'],
         stdout=subprocess.PIPE)
     subprocess.Popen(['tar', '-x', '-C', path_],
@@ -103,8 +105,10 @@ def deploy_dokuwiki(rel_path):
 
     # FCK
     git_pipe = subprocess.Popen(['git',
-            '--git-dir={}'.format(os.path.join(BASE_DIR, 'fckgLite', '.git')),
-            '--work-tree={}'.format(os.path.join(BASE_DIR, 'fckgLite')),
+            '--git-dir={}'.format(
+                os.path.join(BASE_DIR, 'wiki', 'fckgLite', '.git')),
+            '--work-tree={}'.format(
+                os.path.join(BASE_DIR, 'wiki', 'fckgLite')),
             'archive', 'sabal'],
         stdout=subprocess.PIPE)
     subprocess.Popen(['tar', '-x', '-C', '{}/lib/plugins'.format(path_)],
@@ -113,8 +117,8 @@ def deploy_dokuwiki(rel_path):
     # conf
     for file_name in ['acl.auth.php', 'local.php', 'users.auth.php']:
         cmd(['cp',
-            os.path.join(BASE_DIR_, 'build', file_name).replace('\\', '/'),
-            # XXX
+            os.path.join(BASE_DIR_, 'wiki', 'conf',
+                file_name).replace('\\', '/'),  # XXX
             '{}/conf'.format(path_)])
 
     # cleanup

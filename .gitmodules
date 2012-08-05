@@ -2,8 +2,8 @@
 	path = wnmp
 	url = git://github.com/sabal/wnmp.git
 [submodule "dokuwiki"]
-	path = dokuwiki
+	path = wiki/dokuwiki
 	url = git://github.com/sabal/dokuwiki.git
 [submodule "fckgLite"]
-	path = fckgLite
+	path = wiki/fckgLite
 	url = git://github.com/sabal/fckgLite.git

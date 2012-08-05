@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 # Tested on:
 #  - Linux
-#  - Git Bash for Windows
+#  - cmd in Windows (with git accessible in PATH)
 import glob
 import hashlib
+import io
 import logging
 import os
+import shutil
 import subprocess
 import sys
+import tarfile
 import urllib.request
+import zipfile
 
 def makedirs(path, exist_ok=False):
     try:
@@ -17,13 +21,9 @@ def makedirs(path, exist_ok=False):
         pass
 
 
-os.chdir(os.path.dirname(os.path.abspath(__file__)))
-BASE_DIR = ''  #os.path.dirname(__file__)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TARGET_DIR = os.path.join(BASE_DIR, 'build_{}'.format(sys.platform),
     'Another Springnote')
-# GNU cp for Windows doesn't recognize backward slash
-BASE_DIR_ = BASE_DIR.replace('\\', '/')
-TARGET_DIR_ = TARGET_DIR.replace('\\', '/')
 
 
 def main():
@@ -31,11 +31,11 @@ def main():
 
     file_name = os.path.join(TARGET_DIR, 'stop_server.bat')
     if os.access(file_name, os.F_OK):
-        logging.info('Stopping (possibly running) server...')
-        subprocess.call(file_name, shell=True)
+        logging.info('Trying to stop possibly running server...')
+        subprocess.call(file_name, stderr=subprocess.PIPE, shell=True)
 
     if os.access(TARGET_DIR, os.F_OK):
-        cmd(['rm', '-rf', TARGET_DIR])
+        shutil.rmtree(TARGET_DIR)
     makedirs(TARGET_DIR, exist_ok=True)
 
     if sys.platform in ['win32', 'win64', 'cygwin']:
@@ -47,85 +47,89 @@ def main():
     for pattern in [
             'example.nginx.conf',
             'readme.txt',]:
-        for file_path in glob.glob(os.path.join(TARGET_DIR,
+        for path in glob.glob(os.path.join(TARGET_DIR,
                 os.path.normpath(pattern))):
-            cmd(['rm', '-rf', file_path.replace('\\', '/')])
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+            else:
+                os.unlink(path)
 
     # TODO: zip
 
 
 def deploy_wnmp():
-    git_pipe = subprocess.Popen(['git',
-            '--git-dir={}'.format(os.path.join(BASE_DIR, 'wnmp', '.git')),
-            '--work-tree={}'.format(os.path.join(BASE_DIR, 'wnmp')),
-            'archive', 'sabal'],
-        stdout=subprocess.PIPE)
-    subprocess.Popen(['tar', '-x', '-C', TARGET_DIR],
-        stdin=git_pipe.stdout).communicate()
+    os.chdir(os.path.join(BASE_DIR, 'wnmp'))
+    tar, _ = subprocess.Popen(['git', 'archive', 'sabal'],
+        stdout=subprocess.PIPE, shell=True).communicate()
+    ar = tarfile.open(fileobj=io.BytesIO(tar))
+    ar.extractall(TARGET_DIR)
 
     # PHP
     wget('http://windows.php.net/downloads/releases/'
             'php-5.4.5-Win32-VC9-x86.zip',
         sha1='028eb12e09fe011e20097c82064d6c550bf896c4')
-    makedirs(os.path.join('tmp', 'php'), exist_ok=True)
-    cmd(['unzip', '-oq', '-d', os.path.join('tmp', 'php'),
-        'php-5.4.5-Win32-VC9-x86.zip'])
-    cmd(['bash', '-c', "cp -r tmp/php/* '{}/php/'".format(TARGET_DIR_)])
+    logging.info('Extracting PHP...')
+    path = os.path.join(BASE_DIR, '_tmp', 'php')
+    makedirs(path, exist_ok=True)
+    ar = zipfile.ZipFile(
+        os.path.join(BASE_DIR, 'php-5.4.5-Win32-VC9-x86.zip'))
+    ar.extractall(path)
+    shutil.rmtree(os.path.join(TARGET_DIR, 'php'))
+    shutil.copytree(path, os.path.join(TARGET_DIR, 'php'))
 
     # nginx
     wget('http://nginx.org/download/nginx-1.2.2.zip',
         sha1='0a5dfbb766bfefa238207db25d7b64b69aa37908')
-    makedirs(os.path.join('tmp', 'nginx'), exist_ok=True)
-    cmd(['unzip', '-oq', '-d', os.path.join('tmp', 'nginx'),
-        'nginx-1.2.2.zip'])
-    cmd(['bash', '-c',
-        "cp -r tmp/nginx/nginx-1.2.2/* '{}/nginx/'".format(TARGET_DIR_)])
+    logging.info('Extracting nginx...')
+    path = os.path.join(BASE_DIR, '_tmp')
+    makedirs(path, exist_ok=True)
+    ar = zipfile.ZipFile(
+        os.path.join(BASE_DIR, 'nginx-1.2.2.zip'))
+    ar.extractall(path)
+    shutil.rmtree(os.path.join(TARGET_DIR, 'nginx'))
+    shutil.copytree(os.path.join(path, 'nginx-1.2.2'),
+        os.path.join(TARGET_DIR, 'nginx'))
+    shutil.move(os.path.join(TARGET_DIR, 'example.nginx.conf'),
+        os.path.join(TARGET_DIR, 'nginx', 'conf', 'nginx.conf'))
 
-    cmd(['cp', '{}/example.nginx.conf'.format(TARGET_DIR_),
-        '{}/nginx/conf/nginx.conf'.format(TARGET_DIR_)])
+    # cleanup
+    shutil.rmtree(os.path.join(BASE_DIR, '_tmp'))
 
 
 def deploy_dokuwiki(rel_path):
-    # DokuWiki
     if not rel_path:
         path = TARGET_DIR
     else:
         path = os.path.normpath(os.path.join(TARGET_DIR, rel_path))
-    path_ = path.replace('\\', '/')
+
+    # DokuWiki
+    logging.info('Extracting DokuWiki...')
     makedirs(path, exist_ok=True)
-    git_pipe = subprocess.Popen(['git',
-            '--git-dir={}'.format(
-                os.path.join(BASE_DIR, 'wiki', 'dokuwiki', '.git')),
-            '--work-tree={}'.format(
-                os.path.join(BASE_DIR, 'wiki', 'dokuwiki')),
-            'archive', 'sabal'],
-        stdout=subprocess.PIPE)
-    subprocess.Popen(['tar', '-x', '-C', path_],
-        stdin=git_pipe.stdout).communicate()
+    os.chdir(os.path.join(BASE_DIR, 'wiki', 'dokuwiki'))
+    tar, _ = subprocess.Popen(['git', 'archive', 'sabal'],
+        stdout=subprocess.PIPE, shell=True).communicate()
+    ar = tarfile.open(fileobj=io.BytesIO(tar))
+    ar.extractall(path)
 
     # FCK
-    git_pipe = subprocess.Popen(['git',
-            '--git-dir={}'.format(
-                os.path.join(BASE_DIR, 'wiki', 'fckgLite', '.git')),
-            '--work-tree={}'.format(
-                os.path.join(BASE_DIR, 'wiki', 'fckgLite')),
-            'archive', 'sabal'],
-        stdout=subprocess.PIPE)
-    subprocess.Popen(['tar', '-x', '-C', '{}/lib/plugins'.format(path_)],
-        stdin=git_pipe.stdout).communicate()
+    logging.info('Extracting fckgLite plugin...')
+    os.chdir(os.path.join(BASE_DIR, 'wiki', 'fckgLite'))
+    tar, _ = subprocess.Popen(['git', 'archive', 'sabal'],
+        stdout=subprocess.PIPE, shell=True).communicate()
+    ar = tarfile.open(fileobj=io.BytesIO(tar))
+    ar.extractall(os.path.join(path, 'lib', 'plugins'))
 
     # conf
     for file_name in ['acl.auth.php', 'local.php', 'users.auth.php']:
-        cmd(['cp',
-            os.path.join(BASE_DIR_, 'wiki', 'conf',
-                file_name).replace('\\', '/'),  # XXX
-            '{}/conf'.format(path_)])
+        shutil.copy(
+            os.path.join(BASE_DIR, 'wiki', 'conf', file_name),
+            '{}/conf'.format(path))
 
     # cleanup
     for pattern in ['{}/_*'.format(rel_path),]:
         for file_path in glob.glob(os.path.join(TARGET_DIR,
                 os.path.normpath(pattern))):
-            cmd(['rm', '-rf', file_path.replace('\\', '/')])
+            shutil.rmtree(file_path)
 
 
 def cmd(tokens):

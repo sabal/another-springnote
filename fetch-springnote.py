@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 from __future__ import print_function
 
-import os
-import sys
-
 import json
+import os
 
 from springnote import Springnote, SpringnoteException
 

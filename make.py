@@ -63,10 +63,7 @@ def main():
 
 def deploy_wnmp():
     os.chdir(os.path.join(BASE_DIR, 'wnmp'))
-    tar, _ = subprocess.Popen(['git', 'archive', 'sabal'],
-        stdout=subprocess.PIPE, shell=IS_WINDOWS).communicate()
-    ar = tarfile.open(fileobj=io.BytesIO(tar))
-    ar.extractall(TARGET_DIR)
+    git_export('wnmp', TARGET_DIR, branch_name='sabal')
 
     # PHP
     wget('http://windows.php.net/downloads/releases/'
@@ -104,23 +101,14 @@ def deploy_dokuwiki(rel_path=None):
     if not rel_path:
         rel_path = '.'
     path = os.path.normpath(os.path.join(TARGET_DIR, rel_path))
-
-    # DokuWiki
-    logging.info('Extracting DokuWiki...')
     makedirs(path, exist_ok=True)
-    os.chdir(os.path.join(BASE_DIR, 'wiki', 'dokuwiki'))
-    tar, _ = subprocess.Popen(['git', 'archive', 'sabal'],
-        stdout=subprocess.PIPE, shell=IS_WINDOWS).communicate()
-    ar = tarfile.open(fileobj=io.BytesIO(tar))
-    ar.extractall(path)
 
-    # FCK
+    logging.info('Extracting DokuWiki...')
+    git_export('wiki/dokuwiki', path, branch_name='sabal')
+
     logging.info('Extracting fckgLite plugin...')
-    os.chdir(os.path.join(BASE_DIR, 'wiki', 'fckgLite'))
-    tar, _ = subprocess.Popen(['git', 'archive', 'sabal'],
-        stdout=subprocess.PIPE, shell=IS_WINDOWS).communicate()
-    ar = tarfile.open(fileobj=io.BytesIO(tar))
-    ar.extractall(os.path.join(path, 'lib', 'plugins'))
+    git_export('wiki/fckgLite', os.path.join(path, 'lib', 'plugins'),
+            branch_name='sabal')
 
     # conf
     for file_name in ['acl.auth.php', 'local.php', 'users.auth.php']:
@@ -150,5 +138,12 @@ def wget(url, sha1):
     req = urlopen(url)
     open(target_path, 'wb+').write(req.read())
 
+
+def git_export(repo_path, export_path, branch_name='master'):
+    os.chdir(os.path.join(BASE_DIR, os.path.normpath(repo_path)))
+    tar, _ = subprocess.Popen(['git', 'archive', branch_name],
+        stdout=subprocess.PIPE, shell=IS_WINDOWS).communicate()
+    ar = tarfile.open(fileobj=io.BytesIO(tar))
+    ar.extractall(export_path)
 
 main()

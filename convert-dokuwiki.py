@@ -17,8 +17,16 @@ try:
 except NameError:
     unicode = str
 
+
+def makedirs(path, exist_ok=False):
+    try:
+        os.makedirs(path)
+    except OSError:
+        pass
+
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DOKUWIKI_ROOT = os.path.join(BASE_DIR, 'dokuwiki')
+DOKUWIKI_ROOT = os.path.join(BASE_DIR, '_dokuwiki')
 
 
 def _load(path):
@@ -36,6 +44,9 @@ def _save(path, data):
 
 
 def main():
+    makedirs(os.path.join(DOKUWIKI_ROOT, 'data', 'attic'))
+    makedirs(os.path.join(DOKUWIKI_ROOT, 'data', 'meta'))
+    makedirs(os.path.join(DOKUWIKI_ROOT, 'data', 'pages'))
     pages = _load('pages')
     tree = E.pages()
     node_by_id = {}

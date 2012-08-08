@@ -13,18 +13,19 @@
 
 ## 2. DokuWiki로 변환
 
-- 아직 완벽하게 변환이 안 됩니다.
-- 특히 비공개 페이지 권한 같은 거 아직 안 막혀 있습니다.
-
     $ ./convert-dokuwiki.py 
     347 / 347 pages
     $
+
+- 아직 완벽하게 변환이 안 됩니다.
+- 특히 비공개 페이지 권한 같은 거 아직 안 막혀 있습니다.
 
 ## 3. DokuWiki 설치
 
     $ ./make.py 
     INFO:root:Extracting DokuWiki...
     INFO:root:Extracting fckgLite plugin...
+    $ cp -rf _dokuwiki/data/ "build_linux2/Another Springnote/"
     $ mv "build_linux2/Another Springnote" ~/public_html/my_wiki
     $
 

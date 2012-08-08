@@ -1,3 +1,10 @@
 __pycache__
 *.pyc
 *.bak
+.*.swp
+
+_api
+_dokuwiki
+build_*
+nginx-*.zip
+php-*.zip

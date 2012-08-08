@@ -110,6 +110,10 @@ def deploy_dokuwiki(rel_path=None):
     git_export('wiki/fckgLite', os.path.join(path, 'lib', 'plugins'),
             branch_name='sabal')
 
+    logging.info('Extracting dokubook template...')
+    git_export('wiki/dokuwiki-template-dokubook',
+            os.path.join(path, 'lib', 'tpl', 'dokubook'))
+
     # conf
     for file_name in ['acl.auth.php', 'local.php', 'users.auth.php']:
         shutil.copy(

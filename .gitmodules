@@ -7,3 +7,6 @@
 [submodule "fckgLite"]
 	path = wiki/fckgLite
 	url = git://github.com/sabal/fckgLite.git
+[submodule "wiki/dokuwiki-template-dokubook"]
+	path = wiki/dokuwiki-template-dokubook
+	url = git://github.com/chimeric/dokuwiki-template-dokubook.git

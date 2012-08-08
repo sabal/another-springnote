@@ -25,8 +25,8 @@
     $ ./make.py 
     INFO:root:Extracting DokuWiki...
     INFO:root:Extracting fckgLite plugin...
-    $ cp -rf _dokuwiki/data/ "build_linux2/Another Springnote/"
-    $ mv "build_linux2/Another Springnote" ~/public_html/my_wiki
+    $ cp -rf _dokuwiki/data/ build_linux2/another-springnote/
+    $ mv build_linux2/another-springnote ~/public_html/my_wiki
     $
 
 # 라이선스

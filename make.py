@@ -25,9 +25,9 @@ def makedirs(path, exist_ok=False):
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-TARGET_DIR = os.path.join(BASE_DIR, 'build_{}'.format(sys.platform),
-    'Another Springnote')
 IS_WINDOWS = sys.platform in ['win32', 'win64', 'cygwin']
+TARGET_DIR = os.path.join(BASE_DIR, 'build_{}'.format(sys.platform),
+    'Another Springnote' if IS_WINDOWS else 'another-springnote')
 
 
 def main():

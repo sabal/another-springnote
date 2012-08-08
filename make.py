@@ -11,8 +11,11 @@ import shutil
 import subprocess
 import sys
 import tarfile
-import urllib.request
 import zipfile
+try:
+    from urllib.request import urlopen
+except:
+    from urllib2 import urlopen
 
 def makedirs(path, exist_ok=False):
     try:
@@ -24,6 +27,7 @@ def makedirs(path, exist_ok=False):
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 TARGET_DIR = os.path.join(BASE_DIR, 'build_{}'.format(sys.platform),
     'Another Springnote')
+IS_WINDOWS = sys.platform in ['win32', 'win64', 'cygwin']
 
 
 def main():
@@ -38,11 +42,11 @@ def main():
         shutil.rmtree(TARGET_DIR)
     makedirs(TARGET_DIR, exist_ok=True)
 
-    if sys.platform in ['win32', 'win64', 'cygwin']:
+    if IS_WINDOWS:
         deploy_wnmp()
         deploy_dokuwiki('nginx/www')
     else:
-        deploy_dokuwiki('')
+        deploy_dokuwiki()
 
     for pattern in [
             'example.nginx.conf',
@@ -60,7 +64,7 @@ def main():
 def deploy_wnmp():
     os.chdir(os.path.join(BASE_DIR, 'wnmp'))
     tar, _ = subprocess.Popen(['git', 'archive', 'sabal'],
-        stdout=subprocess.PIPE, shell=True).communicate()
+        stdout=subprocess.PIPE, shell=IS_WINDOWS).communicate()
     ar = tarfile.open(fileobj=io.BytesIO(tar))
     ar.extractall(TARGET_DIR)
 
@@ -96,18 +100,17 @@ def deploy_wnmp():
     shutil.rmtree(os.path.join(BASE_DIR, '_tmp'))
 
 
-def deploy_dokuwiki(rel_path):
+def deploy_dokuwiki(rel_path=None):
     if not rel_path:
-        path = TARGET_DIR
-    else:
-        path = os.path.normpath(os.path.join(TARGET_DIR, rel_path))
+        rel_path = '.'
+    path = os.path.normpath(os.path.join(TARGET_DIR, rel_path))
 
     # DokuWiki
     logging.info('Extracting DokuWiki...')
     makedirs(path, exist_ok=True)
     os.chdir(os.path.join(BASE_DIR, 'wiki', 'dokuwiki'))
     tar, _ = subprocess.Popen(['git', 'archive', 'sabal'],
-        stdout=subprocess.PIPE, shell=True).communicate()
+        stdout=subprocess.PIPE, shell=IS_WINDOWS).communicate()
     ar = tarfile.open(fileobj=io.BytesIO(tar))
     ar.extractall(path)
 
@@ -115,7 +118,7 @@ def deploy_dokuwiki(rel_path):
     logging.info('Extracting fckgLite plugin...')
     os.chdir(os.path.join(BASE_DIR, 'wiki', 'fckgLite'))
     tar, _ = subprocess.Popen(['git', 'archive', 'sabal'],
-        stdout=subprocess.PIPE, shell=True).communicate()
+        stdout=subprocess.PIPE, shell=IS_WINDOWS).communicate()
     ar = tarfile.open(fileobj=io.BytesIO(tar))
     ar.extractall(os.path.join(path, 'lib', 'plugins'))
 
@@ -144,7 +147,7 @@ def wget(url, sha1):
         if hashlib.sha1(open(target_path, 'rb').read()).hexdigest() == sha1:
             return
     logging.info('Downloading {}'.format(url))
-    req = urllib.request.urlopen(url)
+    req = urlopen(url)
     open(target_path, 'wb+').write(req.read())
 
 

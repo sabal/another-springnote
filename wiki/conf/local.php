@@ -7,11 +7,14 @@
  */
 
 $conf['title'] = 'DokuWiki on a Stick';
+$conf['lang'] = 'ko';
+$conf['template'] = 'dokubook';
 $conf['useacl'] = 1;
 $conf['autopasswd'] = 0;
 $conf['superuser'] = '@admin';
 $conf['userewrite'] = '1';
 $conf['useslash'] = 1;
+$conf['useheading'] = 1;  // use meta['title']
 
 @include(DOKU_CONF.'local.protected.php');
 

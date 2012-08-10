@@ -1,0 +1,10 @@
+div.sidebar div.li
+{
+    display: inline-block;
+}
+
+/* XXX better classifier */
+div.dokuwiki div.sidebar .sidebar_box ul.idx
+{
+    margin-left: 0 !important;
+}

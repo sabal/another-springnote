@@ -63,7 +63,7 @@ def main():
 
 def deploy_wnmp():
     os.chdir(os.path.join(BASE_DIR, 'wnmp'))
-    git_export('wnmp', TARGET_DIR, branch_name='sabal')
+    git_export('wnmp', TARGET_DIR)
 
     # PHP
     wget('http://windows.php.net/downloads/releases/'
@@ -104,18 +104,29 @@ def deploy_dokuwiki(rel_path=None):
     makedirs(path, exist_ok=True)
 
     logging.info('Extracting DokuWiki...')
-    git_export('wiki/dokuwiki', path, branch_name='sabal')
+    git_export('wiki/dokuwiki', path)
+
+    logging.info('Extracting sabal plugin...')
+    git_export('.', os.path.join(path, 'lib', 'plugins', 'sabal'),
+            filter_path='wiki/sabal-plugin/', strip=2)
+    if not IS_WINDOWS:
+        # XXX
+        cmd(['chmod', '-R', 'a+rx',
+                os.path.join(path, 'lib', 'plugins', 'sabal')])
 
     logging.info('Extracting fckgLite plugin...')
-    git_export('wiki/fckgLite', os.path.join(path, 'lib', 'plugins'),
-            branch_name='sabal')
+    git_export('wiki/fckgLite', os.path.join(path, 'lib', 'plugins'))
 
     logging.info('Extracting dokubook template...')
     git_export('wiki/dokuwiki-template-dokubook',
             os.path.join(path, 'lib', 'tpl', 'dokubook'))
 
     # conf
-    for file_name in ['acl.auth.php', 'local.php', 'users.auth.php']:
+    for file_name in [
+            'acl.auth.php',
+            'local.php',
+            'plugins.local.php',
+            'users.auth.php']:
         shutil.copy(
             os.path.join(BASE_DIR, 'wiki', 'conf', file_name),
             '{}/conf'.format(path))
@@ -143,11 +154,24 @@ def wget(url, sha1):
     open(target_path, 'wb+').write(req.read())
 
 
-def git_export(repo_path, export_path, branch_name='master'):
-    os.chdir(os.path.join(BASE_DIR, os.path.normpath(repo_path)))
-    tar, _ = subprocess.Popen(['git', 'archive', branch_name],
+def git_export(repo_path, export_path, branch_name='HEAD',
+        filter_path=None, strip=0):
+    os.chdir(os.path.normpath(os.path.join(BASE_DIR, repo_path)))
+    args = ['git', 'archive', branch_name]
+    if filter_path:
+        args += [filter_path]
+    tar, _ = subprocess.Popen(args,
         stdout=subprocess.PIPE, shell=IS_WINDOWS).communicate()
     ar = tarfile.open(fileobj=io.BytesIO(tar))
+    if strip:
+        import copy
+        def decorator(fn):
+            def new_fn(member, path="", set_attrs=True):
+                new_member = copy.copy(member)
+                new_member.name = '/'.join(member.name.split('/')[strip:])
+                return fn(new_member, path, set_attrs)
+            return new_fn
+        ar.extract = decorator(ar.extract)
     ar.extractall(export_path)
 
 main()

@@ -153,10 +153,15 @@ def main():
             path.insert(0, parent.get('id'))
             parent = parent.getparent()
         node.set('path', ':'.join(path))
-    _save('meta/_tree.xml', lxml.etree.tostring(tree,
+    new_tree = E.pages()
+    for node in list(tree.getiterator()):
+        if node.tag != 'page':
+            continue
+        new_tree.append(node)
+    _save('meta/_tree.xml', lxml.etree.tostring(new_tree,
         pretty_print=True, encoding='utf8'))
     # tree with public pages only
-    for node in list(tree.getiterator()):
+    for node in list(new_tree.getiterator()):
         if node.tag in ['pages']:
             continue
         id_ = node.get('id')
@@ -177,7 +182,7 @@ def main():
                 lost_and_found.append(child)
             node.getparent().remove(node)
     # TODO: Sort by title?
-    _save('pages/_tree.xml', lxml.etree.tostring(tree,
+    _save('pages/_tree.xml', lxml.etree.tostring(new_tree,
         pretty_print=True, encoding='utf8'))
 
 

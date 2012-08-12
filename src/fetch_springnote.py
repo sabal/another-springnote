@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# coding: utf8
 from __future__ import print_function
 
 import json
@@ -22,8 +23,9 @@ def makedirs(path, exist_ok=False):
 
 class Fetcher:
     def __init__(self):
-        openid = input('Your OpenID (like http://example.myid.net/) : ')
-        print('''Go to following URL and get the user key:
+        openid = input('OpenID (e.g. http://example.myid.net/) : ')
+        print('''다음 주소로 가서 API 키를 받으십시오.
+Go to following URL and get the user key:
 https://api.openmaru.com/delegate_key/springnote?app_id=71fcb7c8'''
             '&openid={}'.format(openid))
         key = input('Key: ')
@@ -52,7 +54,7 @@ def main():
     bot = Fetcher()
     pages = json.loads(bot.fetch('/pages.json').decode('ascii'))
     n_rev = n_att = 0
-    print('\r{} / {} pages'.format(0, len(pages)), end='')
+    print('{} / {} pages'.format(0, len(pages)))
     for i, entry in enumerate(pages):
         id_ = entry['page']['identifier']
         bot.fetch('/pages/{}.json'.format(id_))
@@ -64,12 +66,6 @@ def main():
             for k, _ in enumerate(revisions):
                 bot.fetch('/pages/{}/revisions/{}.json'.format(
                     id_, _['revision']['identifier']))
-                print('\r{} / {} pages  {} / {} revisions  '
-                    '{} / {} attachments'.format(
-                        i + 1, len(pages),
-                        n_rev + k + 1, n_rev + len(revisions),
-                        n_att, n_att,
-                        ), end='')
             n_rev += len(revisions)
         data = bot.fetch('/pages/{}/attachments.json'.format(id_))
         if data:
@@ -77,23 +73,16 @@ def main():
             for k, _ in enumerate(attachments):
                 bot.fetch('/pages/{}/attachments/{}'.format(id_,
                     _['attachment']['identifier']))
-                print('\r{} / {} pages  {} / {} revisions  '
-                    '{} / {} attachments'.format(
-                        i + 1, len(pages),
-                        n_rev, n_rev,
-                        n_att + k + 1, n_att + len(attachments),
-                        ), end='')
             n_att += len(attachments)
-        print('\r{} / {} pages'.format(i + 1, len(pages)), end='')
-    print('')
+        print('{} / {} pages - {}'.format(
+            i + 1, len(pages), entry['page']['title'].encode('utf8')))
     tags = json.loads(bot.fetch('/tags.json').decode('ascii'))
     return
-    print('\r{} / {} tags'.format(0, len(tags)), end='')
+    print('{} / {} tags'.format(0, len(tags)))
     for i, entry in enumerate(tags):
         id_ = entry['tag']['identifier']
         bot.fetch('/tag/{}.json'.format(id_))
-        print('\r{} / {} tags'.format(i + 1, len(tags)), end='')
-    print('')
+        print('{} / {} tags'.format(i + 1, len(tags)))
 
 
 if __name__ == '__main__':

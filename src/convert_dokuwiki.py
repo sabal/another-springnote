@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# coding: utf8
 from __future__ import print_function
 
 import calendar
@@ -186,4 +187,5 @@ def main():
         pretty_print=True, encoding='utf8'))
 
 
-main()
+if __name__ == '__main__':
+    main()

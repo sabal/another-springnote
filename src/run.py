@@ -22,6 +22,7 @@ Close the Window when you're done. / 종료하시려면, 그냥 창을 꺼 주�
 """
 > """)
         cmd = raw_input(welcome_message)
+        print cmd
         cmd = cmd.strip()
         if cmd in ['1']:
             fetch_springnote.main()

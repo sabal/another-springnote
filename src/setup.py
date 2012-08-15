@@ -8,7 +8,7 @@ from py2exe.build_exe import py2exe
 class Wrapper(py2exe):
     def run(self):
         py2exe.run(self)
-        date = time.strftime('%Y-%m-%d')
+        date = time.strftime('%Y%m%d-%H%M')
         git_hash = subprocess.check_output(
             ['git', 'rev-parse', '--verify', '--short', 'HEAD'], shell=True)
         open('dist/VERSION', 'w').write('{}-{}'.format(date, git_hash))

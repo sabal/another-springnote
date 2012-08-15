@@ -28,10 +28,17 @@ except:
 def makedirs(path, exist_ok=False):
     try:
         os.makedirs(path)
-    except OSError:
-        pass
+    except OSError as e:
+        if not exist_ok:
+            raise
+        import errno
+        if e.errno not in [errno.EEXIST]:
+            raise
 
 
+if '.exe' in __file__:  # XXX
+    import sys
+    __file__ = sys.argv[0]
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DOKUWIKI_ROOT = os.path.join(BASE_DIR, '_dokuwiki')
 

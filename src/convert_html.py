@@ -15,6 +15,9 @@ try:
 except:
     pass
 
+if '.exe' in __file__:  # XXX
+    import sys
+    __file__ = sys.argv[0]
 NTFS_NG = '\0/\\:*?"<>|'
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 SAVE_ROOT = os.path.join(BASE_DIR, '_html')

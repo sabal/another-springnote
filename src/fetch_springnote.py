@@ -3,8 +3,13 @@
 from __future__ import print_function
 
 import json
+import lxml.html
 import os
 import re
+try:
+    from urllib.request import urlopen
+except ImportError:
+    from urllib2 import urlopen
 
 from springnote import Springnote, SpringnoteException
 
@@ -18,19 +23,29 @@ except:
 def makedirs(path, exist_ok=False):
     try:
         os.makedirs(path)
-    except OSError:
-        pass
+    except OSError as e:
+        if not exist_ok:
+            raise
+        import errno
+        if e.errno not in [errno.EEXIST]:
+            raise
+
+if '.exe' in __file__:  # XXX
+    import sys
+    __file__ = sys.argv[0]
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+SAVE_PATH = os.path.join(BASE_DIR, '_api')
 
 
 class Fetcher:
     def __init__(self):
-        openid = input('Your OpenID (e.g. http://example.myid.net/) : ')
+        openid = input("Your OpenID (e.g. http://example.myid.net/) : ")
         print("""다음 주소로 가서 API 키를 받으십시오.
 Go to following URL and get the user key:
 https://api.openmaru.com/delegate_key/springnote?app_id=71fcb7c8"""
             '&openid={}'.format(openid))
         key = input("Key: ")
-        print("질문이 하나만 더 받으면 됩니다. 접속될 때까지 채널 고정!")
+        print("질문 하나만 더 받으면 됩니다. 접속될 때까지 채널 고정!")
         print("Connecting. Please wait...")
         self.api = Springnote(openid, key)
         print("Getting information...")
@@ -38,12 +53,10 @@ https://api.openmaru.com/delegate_key/springnote?app_id=71fcb7c8"""
         self.subdomain = re.search(r'(\w+).springnote.com',
                                    pages[0]['page']['uri']).group(1)
 
-    SAVE_PATH = '_api'
-
     def fetch(self, path, force=False):
         assert '..' not in path
         cache_path = os.path.normpath(
-            os.path.join(self.SAVE_PATH, self.subdomain) + path)
+            os.path.join(SAVE_PATH, self.subdomain) + path)
         path += '?domain={}'.format(self.subdomain)
         if os.access(cache_path, os.F_OK):
             return open(cache_path, 'rb').read()
@@ -68,10 +81,30 @@ def main():
 ID ({}) : """.format(bot.subdomain))
     if subdomain:
         bot.subdomain = subdomain
-    pages = bot.fetch_data('/pages.json')
-    n_rev = n_att = 0
+    subdomain = bot.subdomain
+    makedirs(os.path.join(SAVE_PATH, subdomain), exist_ok=True)
     print("""주의: 다운로드는 정말 시간이 오래 걸립니다.
 서버 상태에 따라 몇십 분에서 몇 시간이 걸릴 수 있습니다.""")
+    try:
+        print("Downloading profile image...")
+        data = urlopen(
+            'http://{}.springnote.com/profile_image'.format(subdomain)).read()
+        open(os.path.join(SAVE_PATH, subdomain, 'profile_image.jpg'),
+            'wb+').write(data)
+    except:  # XXX probably 404
+        pass
+    xhtml = urlopen('http://{}.springnote.com/pages'.format(subdomain)).read()
+    tree = lxml.html.fromstring(xhtml)
+    note_title = tree.find('head').find('title').text_content()
+    note_title = re.sub(unicode(r'(.*?) - '), unicode(''), note_title)
+    open(os.path.join(SAVE_PATH, subdomain, 'note_title.txt'), 'wb+').write(
+        note_title.strip().encode('utf8'))
+    note_description = tree.cssselect('div.note-description')[0].text
+    note_description = re.sub(unicode(r'\s+'), unicode(' '), note_description)
+    open(os.path.join(SAVE_PATH, subdomain, 'note_description.txt'),
+        'w+').write(note_description.strip().encode('utf8'))
+    pages = bot.fetch_data('/pages.json')
+    n_rev = n_att = 0
     print("{} / {} pages".format(0, len(pages)))
     for i, entry in enumerate(pages):
         id_ = entry['page']['identifier']
@@ -100,6 +133,7 @@ ID ({}) : """.format(bot.subdomain))
             i + 1, len(pages),
             entry['page']['title'].encode('utf8', 'replace')))
     tags = json.loads(bot.fetch('/tags.json').decode('ascii'))
+    print("Converted contents at: {}".format(SAVE_PATH))
     return
     print("{} / {} tags".format(0, len(tags)))
     for i, entry in enumerate(tags):

@@ -30,8 +30,11 @@ idlelib.PyShell.use_subprocess = False
 
 def main():
     base_path = os.path.dirname(os.path.abspath(__file__))
-    idlelib.PyShell.PyShell.shell_title = "Another Springnote (ver. {})".format(
-        open(os.path.join(base_path, 'VERSION')).read().strip())
+    version_file = os.path.join(base_path, 'VERSION')
+    idlelib.PyShell.PyShell.shell_title = "Another Springnote"
+    if os.path.exists(version_file):
+        idlelib.PyShell.PyShell.shell_title += " (ver. {})".format(
+                open(version_file).read().strip())
     root = Tk(className="Idle")
     fixwordbreaks(root)
     root.withdraw()

@@ -10,10 +10,13 @@ except NameError:
 import idlelib.configHandler
 cfg = {}
 for config_type in ['main', 'extensions', 'highlight', 'keys']:
-    cfg_path = os.path.join(
+    for path in [
         os.path.dirname(os.path.abspath(__file__)),
-        'config-'+config_type+'.def')
-    cfg[config_type] = idlelib.configHandler.IdleConfParser(cfg_path)
+        'C:\\Python27\\Lib\\idlelib',
+    ]:
+        cfg_path = os.path.join(path, 'config-'+config_type+'.def')
+        if os.path.exists(cfg_path):
+            cfg[config_type] = idlelib.configHandler.IdleConfParser(cfg_path)
 idlelib.configHandler.idleConf.defaultCfg = cfg
 idlelib.configHandler.idleConf.LoadCfgFiles()
 

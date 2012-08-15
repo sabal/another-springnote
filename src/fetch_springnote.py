@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import json
 import os
+import re
 
 from springnote import Springnote, SpringnoteException
 
@@ -23,20 +24,26 @@ def makedirs(path, exist_ok=False):
 
 class Fetcher:
     def __init__(self):
-        openid = input('OpenID (e.g. http://example.myid.net/) : ')
-        print('''다음 주소로 가서 API 키를 받으십시오.
+        openid = input('Your OpenID (e.g. http://example.myid.net/) : ')
+        print("""다음 주소로 가서 API 키를 받으십시오.
 Go to following URL and get the user key:
-https://api.openmaru.com/delegate_key/springnote?app_id=71fcb7c8'''
+https://api.openmaru.com/delegate_key/springnote?app_id=71fcb7c8"""
             '&openid={}'.format(openid))
-        key = input('Key: ')
-        print('Connecting...')
+        key = input("Key: ")
+        print("Connecting. Please wait...")
         self.api = Springnote(openid, key)
+        print("Getting information...")
+        pages = json.loads(self.api._fetch('GET', '/pages.json').decode('ascii'))
+        self.subdomain = re.search(r'(\w+).springnote.com',
+                                   pages[0]['page']['uri']).group(1)
 
     SAVE_PATH = '_api'
 
-    def fetch(self, path):
+    def fetch(self, path, force=False):
         assert '..' not in path
-        cache_path = os.path.normpath(self.SAVE_PATH + path)
+        cache_path = os.path.normpath(
+            os.path.join(self.SAVE_PATH, self.subdomain) + path)
+        path += '?domain={}'.format(self.subdomain)
         if os.access(cache_path, os.F_OK):
             return open(cache_path, 'rb').read()
         makedirs(os.path.split(cache_path)[0], exist_ok=True)
@@ -49,40 +56,53 @@ https://api.openmaru.com/delegate_key/springnote?app_id=71fcb7c8'''
         open(cache_path, 'wb+').write(data)
         return data
 
+    def fetch_data(self, path):
+        return json.loads(self.fetch(path).decode('ascii'))
+
 
 def main():
     bot = Fetcher()
-    pages = json.loads(bot.fetch('/pages.json').decode('ascii'))
+    subdomain = input("""백업할 스프링노트의 ID를 적어주세요.
+(e.g. help.springnote.com -> help)
+ID ({}) : """.format(bot.subdomain))
+    if subdomain:
+        bot.subdomain = subdomain
+    pages = bot.fetch_data('/pages.json')
     n_rev = n_att = 0
-    print('{} / {} pages'.format(0, len(pages)))
+    print("{} / {} pages".format(0, len(pages)))
     for i, entry in enumerate(pages):
         id_ = entry['page']['identifier']
         bot.fetch('/pages/{}.json'.format(id_))
         for resource in ['collaboration', 'comments']:
             bot.fetch('/pages/{}/{}.json'.format(id_, resource))
-        data = bot.fetch('/pages/{}/revisions.json'.format(id_))
-        if data:
-            revisions = json.loads(data.decode('ascii'))
-            for k, _ in enumerate(revisions):
-                bot.fetch('/pages/{}/revisions/{}.json'.format(
-                    id_, _['revision']['identifier']))
-            n_rev += len(revisions)
         data = bot.fetch('/pages/{}/attachments.json'.format(id_))
         if data:
             attachments = json.loads(data.decode('ascii'))
+            n = len(attachments)
             for k, _ in enumerate(attachments):
                 bot.fetch('/pages/{}/attachments/{}'.format(id_,
                     _['attachment']['identifier']))
-            n_att += len(attachments)
-        print('{} / {} pages - {}'.format(
-            i + 1, len(pages), entry['page']['title'].encode('utf8')))
+                if (k + 1) % 5 == 0:
+                    print("{} / {} attachments".format(k + 1, n))
+        data = bot.fetch('/pages/{}/revisions.json'.format(id_))
+        if data:
+            revisions = json.loads(data.decode('ascii'))
+            n = len(revisions)
+            for k, _ in enumerate(revisions):
+                bot.fetch('/pages/{}/revisions/{}.json'.format(
+                    id_, _['revision']['identifier']))
+                if (k + 1) % 5 == 0:
+                    print("{} / {} revisions".format(k + 1, n))
+        print("{} / {} pages complete - {}".format(
+            i + 1, len(pages),
+            entry['page']['title'].encode('utf8', 'replace')))
     tags = json.loads(bot.fetch('/tags.json').decode('ascii'))
     return
-    print('{} / {} tags'.format(0, len(tags)))
+    print("{} / {} tags".format(0, len(tags)))
     for i, entry in enumerate(tags):
         id_ = entry['tag']['identifier']
         bot.fetch('/tag/{}.json'.format(id_))
-        print('{} / {} tags'.format(i + 1, len(tags)))
+        print("{} / {} tags".format(i + 1, len(tags)))
 
 
 if __name__ == '__main__':

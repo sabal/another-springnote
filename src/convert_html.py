@@ -63,6 +63,7 @@ def main():
         subdomain = None
         while subdomain not in dirs:
             subdomain = input("Choose ID ({}) : ".format(', '.join(dirs)))
+    makedirs(os.path.join(SAVE_ROOT, 'pages'), exist_ok=True)
     shutil.copy2(
         os.path.join(BASE_DIR, 'sabal.css'),
         os.path.join(SAVE_ROOT, 'pages'))

@@ -1,4 +1,5 @@
 from distutils.core import setup
+import glob
 
 import py2exe
 
@@ -20,12 +21,9 @@ setup(
         },
     },
     data_files=[
-        ('.', [
-            'run.py',
-            'config-extensions.def',
-            'config-highlight.def',
-            'config-keys.def',
-            'config-main.def',
-        ]),
+        ('.', (
+            ['run.py'] +
+            glob.glob('C:\\Python27\\Lib\\idlelib\\config-*.def')
+        )),
     ],
 )

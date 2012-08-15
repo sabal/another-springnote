@@ -1,0 +1,69 @@
+body
+{
+    line-height: 1.5em;
+    font-size: 0.75em;
+}
+
+h1, h2, h3, h4, h5, h6
+{
+    color: #223D67;
+}
+
+h1, h2
+{
+    border-bottom: solid #425E89 3px;
+}
+
+h3, h4
+{
+    border-bottom: solid #425E89 2px;
+}
+
+h5, h6
+{
+    border-bottom: solid #425E89 1px;
+}
+
+table
+{
+    width: 100%;
+    border-collapse: collapse;
+}
+
+td
+{
+    border: solid #999 1px;
+}
+
+blockquote
+{
+    margin: 0;
+    padding-left: 3em;
+    background: #EFEFEF;
+}
+
+ol.code
+{
+    background: #EFEFEF;
+    list-style-type: none;
+    font-size: 1.11em;
+    font-family: monospace;
+    counter-reset: item;
+}
+
+ol.code li:before
+{
+    content: counter(item) " ";
+    counter-increment: item;
+    color: #999;
+}
+
+a
+{
+    color: #568942;
+}
+
+a.wiki
+{
+    color: #002BB8;
+}

@@ -18,6 +18,12 @@ try:
 except NameError:
     unicode = str
 
+try:
+    raw_input
+    input = raw_input
+except:
+    pass
+
 
 def makedirs(path, exist_ok=False):
     try:
@@ -30,8 +36,8 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DOKUWIKI_ROOT = os.path.join(BASE_DIR, '_dokuwiki')
 
 
-def _load(path):
-    with open(os.path.join(BASE_DIR, '_api',
+def _load(subdomain, path):
+    with open(os.path.join(BASE_DIR, '_api', subdomain,
             os.path.normpath(path) + '.json')) as f:
         return json.loads(f.read())
 
@@ -45,18 +51,28 @@ def _save(path, data):
 
 
 def main():
+    dirs = os.listdir(os.path.join(BASE_DIR, '_api'))
+    if len(dirs) == 0:
+        print("Springnote backup not found.")
+        return
+    elif len(dirs) == 1:
+        subdomain = dirs[0]
+    else:
+        subdomain = None
+        while subdomain not in dirs:
+            subdomain = input("Choose ID ({}) : ".format(', '.join(dirs)))
     makedirs(os.path.join(DOKUWIKI_ROOT, 'data', 'attic'))
     makedirs(os.path.join(DOKUWIKI_ROOT, 'data', 'meta'))
     makedirs(os.path.join(DOKUWIKI_ROOT, 'data', 'pages'))
-    pages = _load('pages')
+    pages = _load(subdomain, 'pages')
     tree = E.pages()
     node_by_id = {}
     dangling_nodes = {}
 #    pages = {_['page']['identifier']: _['page'] for _ in pages}  # No need yet
-    print('0 / {} pages'.format(len(pages)), end='')
+    print('0 / {} pages'.format(len(pages)))
     for i, entry in enumerate(pages):
         id_ = entry['page']['identifier']
-        page = _load('pages/{}'.format(id_))
+        page = _load(subdomain, 'pages/{}'.format(id_))
 
         # tree
         if id_ not in node_by_id:
@@ -80,7 +96,7 @@ def main():
             node_by_id[parent_id] = dangling_nodes[parent_id] = parent
 
         # content
-        xhtml = '''<?xml version="1.0" encoding="UTF-8"?>
+        xhtml = b'''<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
     "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <html version="-//W3C//DTD XHTML 1.1//EN"
@@ -97,17 +113,17 @@ def main():
   </body>
 </html>
 '''.format(
-            title=page['page']['title'],
-            body=page['page']['source'])
+            title=page['page']['title'].encode('utf8'),
+            body=page['page']['source'].encode('utf8'))
         # TODO: save private pages in a different path
         _save('pages/{}.xhtml'.format(id_), xhtml)
         # revisions
-        revisions = sorted(_load('pages/{}/revisions'.format(id_)),
+        revisions = sorted(_load(subdomain, 'pages/{}/revisions'.format(id_)),
                 key=lambda _:_['revision']['date_created'])
         data = []
         for k, revision in enumerate(revisions):
             description = revision['revision']['description']
-            revision = _load('pages/{}/revisions/{}'.format(
+            revision = _load(subdomain, 'pages/{}/revisions/{}'.format(
                 id_, revision['revision']['identifier']))
             m = re.match(r'^(?P<parsable>\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) '
                 r'(?P<tz_sign>[-+])(?P<tz_hour>\d{2})(?P<tz_minute>\d{2})$',
@@ -134,9 +150,8 @@ def main():
         _save('meta/{}.changes'.format(id_), '\n'.join(data))
 
         # TODO: attachments
-        print('\r{} / {} pages'.format(i + 1, len(pages)), end='')
+        print(b'{} / {} pages'.format(i + 1, len(pages)))
 
-    print('')
     print('Saving tree structures...')
     lost_and_found = E.page(id='lost_and_found', title='Lost and Found')
     if dangling_nodes:
@@ -168,7 +183,8 @@ def main():
         id_ = node.get('id')
         if id_ in ['lost_and_found']:
             continue
-        collaboration = _load('pages/{}/collaboration'.format(int(id_)))
+        collaboration = _load(subdomain,
+            'pages/{}/collaboration'.format(int(id_)))
         # The page is public when any of the following is true:
         # - collaboration.json is an empty list
         # - There exists {"access_rights": "reader",

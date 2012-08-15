@@ -30,6 +30,7 @@ Go to following URL and get the user key:
 https://api.openmaru.com/delegate_key/springnote?app_id=71fcb7c8"""
             '&openid={}'.format(openid))
         key = input("Key: ")
+        print("질문이 하나 더 남았습니다. 접속될 때까지 기다려 주세요.")
         print("Connecting. Please wait...")
         self.api = Springnote(openid, key)
         print("Getting information...")
@@ -69,6 +70,8 @@ ID ({}) : """.format(bot.subdomain))
         bot.subdomain = subdomain
     pages = bot.fetch_data('/pages.json')
     n_rev = n_att = 0
+    print("""주의: 다운로드는 정말 시간이 오래 걸립니다.
+서버 상태에 따라 몇십 분에서 몇 시간이 걸릴 수 있습니다.""")
     print("{} / {} pages".format(0, len(pages)))
     for i, entry in enumerate(pages):
         id_ = entry['page']['identifier']

@@ -7,6 +7,7 @@ try:
     from http.client import HTTPSConnection
 except ImportError:
     from httplib import HTTPSConnection
+import socket
 try:
     from urllib.parse import quote
 except ImportError:
@@ -142,20 +143,32 @@ class SpringnoteRequest:
 
     def _request(self, method, path, body, headers):
         """Don't call this function directly."""
-        retry = 3
-        while retry:
+        success = False
+        retry = 0
+        while retry < 3:
             try:
                 bot = HTTPSConnection(self.SERVER_ADDRESS)
                 bot.request(method, path, body, headers)
                 response = bot.getresponse()
                 result = response.read()
-                bot.close()
+                success = True
                 break
+            except socket.error as (errno, message):
+                for encoding in ['utf8', 'cp949']:
+                    try:
+                        message = string.decode(message)
+                    except:
+                        pass
+                print("Error: {} {}. Retrying...".format(errno, message))
             except Exception as e:
-                print("Error: %s. Retrying.." % repr(e))
+                print("Error: {}. Retrying...".format(repr(e)))
+            finally:
                 bot.close()
-                retry -= 1
-        assert retry
+                retry += 1
+        if retry > 1:
+            print("Success. Continuing...")
+        if not success:
+            raise SpringnoteException(path, "Could not download")
         if response.status != 200:  # 200 OK
             raise SpringnoteException(path, result, status=response.status)
             # TODO: raise specific error

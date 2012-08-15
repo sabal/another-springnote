@@ -30,7 +30,7 @@ Go to following URL and get the user key:
 https://api.openmaru.com/delegate_key/springnote?app_id=71fcb7c8"""
             '&openid={}'.format(openid))
         key = input("Key: ")
-        print("질문이 하나 더 남았습니다. 접속될 때까지 기다려 주세요.")
+        print("질문이 하나만 더 받으면 됩니다. 접속될 때까지 채널 고정!")
         print("Connecting. Please wait...")
         self.api = Springnote(openid, key)
         print("Getting information...")

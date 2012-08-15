@@ -14,7 +14,7 @@ for config_type in ['main', 'extensions', 'highlight', 'keys']:
         os.path.dirname(os.path.abspath(__file__)),
         'C:\\Python27\\Lib\\idlelib',
     ]:
-        cfg_path = os.path.join(path, 'config-'+config_type+'.def')
+        cfg_path = os.path.join(path, 'config-' + config_type + '.def')
         if os.path.exists(cfg_path):
             cfg[config_type] = idlelib.configHandler.IdleConfParser(cfg_path)
 idlelib.configHandler.idleConf.defaultCfg = cfg
@@ -29,7 +29,9 @@ idlelib.PyShell.use_subprocess = False
 
 
 def main():
-    idlelib.PyShell.PyShell.shell_title = "Another Springnote"
+    base_path = os.path.dirname(os.path.abspath(__file__))
+    idlelib.PyShell.PyShell.shell_title = "Another Springnote (ver. {})".format(
+        open(os.path.join(base_path, 'VERSION')).read().strip())
     root = Tk(className="Idle")
     fixwordbreaks(root)
     root.withdraw()
@@ -44,8 +46,7 @@ def main():
         _sys.argv = %r
         del _sys
         \n""" % (sys.argv,))
-    script_path = os.path.normpath(os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), 'run.py'))
+    script_path = os.path.normpath(os.path.join(base_path, 'run.py'))
     shell.interp.prepend_syspath(script_path)
     shell.interp.execfile(script_path)
     root.mainloop()

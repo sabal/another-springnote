@@ -64,7 +64,7 @@ https://api.openmaru.com/delegate_key/springnote?app_id=71fcb7c8"""
         try:
             data = self.api._fetch('GET', path)
         except SpringnoteException as ex:
-            if ex.status in [404]:
+            if ex.status in [403, 404]:
                 return None
             raise
         open(cache_path, 'wb+').write(data)
@@ -93,16 +93,19 @@ ID ({}) : """.format(bot.subdomain))
             'wb+').write(data)
     except:  # XXX probably 404
         pass
-    xhtml = urlopen('http://{}.springnote.com/pages'.format(subdomain)).read()
-    tree = lxml.html.fromstring(xhtml)
-    note_title = tree.find('head').find('title').text_content()
-    note_title = re.sub(unicode(r'(.*?) - '), unicode(''), note_title)
-    open(os.path.join(SAVE_PATH, subdomain, 'note_title.txt'), 'wb+').write(
-        note_title.strip().encode('utf8'))
-    note_description = tree.cssselect('div.note-description')[0].text
-    note_description = re.sub(unicode(r'\s+'), unicode(' '), note_description)
-    open(os.path.join(SAVE_PATH, subdomain, 'note_description.txt'),
-        'w+').write(note_description.strip().encode('utf8'))
+    try:
+        xhtml = urlopen('http://{}.springnote.com/pages'.format(subdomain)).read()
+        tree = lxml.html.fromstring(xhtml)
+        note_title = tree.find('head').find('title').text_content()
+        note_title = re.sub(unicode(r'(.*?) - '), unicode(''), note_title)
+        open(os.path.join(SAVE_PATH, subdomain, 'note_title.txt'), 'wb+').write(
+            note_title.strip().encode('utf8'))
+        note_description = tree.cssselect('div.note-description')[0].text
+        note_description = re.sub(unicode(r'\s+'), unicode(' '), note_description)
+        open(os.path.join(SAVE_PATH, subdomain, 'note_description.txt'),
+            'w+').write(note_description.strip().encode('utf8'))
+    except:
+        pass
     pages = bot.fetch_data('/pages.json')
     n_rev = n_att = 0
     print("{} / {} pages".format(0, len(pages)))

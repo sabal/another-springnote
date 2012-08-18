@@ -10,6 +10,8 @@ $conf['userewrite'] = '0';
 $conf['useslash'] = 1;
 $conf['useheading'] = 1;  // use meta['title']
 
+$conf['compress'] = 0;
+
 @include(DOKU_CONF.'local.protected.php');
 
 ?>

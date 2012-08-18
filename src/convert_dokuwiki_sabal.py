@@ -44,15 +44,18 @@ DOKUWIKI_ROOT = os.path.join(BASE_DIR, '_dokuwiki')
 
 
 def _load(subdomain, path):
-    with open(os.path.join(BASE_DIR, '_api', subdomain,
-            os.path.normpath(path) + '.json')) as f:
+    path = os.path.join(BASE_DIR, '_api', subdomain,
+            os.path.normpath(path) + '.json')
+    if not os.path.exists(path):
+        return None
+    with open(path) as f:
         return json.loads(f.read())
 
 
-def _save(path, data):
+def _save(subdomain, path, data):
     if isinstance(data, unicode):
         data = data.encode('utf8')
-    with open(os.path.join(DOKUWIKI_ROOT, 'data',
+    with open(os.path.join(DOKUWIKI_ROOT, subdomain, 'data',
             os.path.normpath(path)), 'wb+') as f:
         f.write(data)
 
@@ -68,9 +71,9 @@ def main():
         subdomain = None
         while subdomain not in dirs:
             subdomain = input("Choose ID ({}) : ".format(', '.join(dirs)))
-    makedirs(os.path.join(DOKUWIKI_ROOT, 'data', 'attic'))
-    makedirs(os.path.join(DOKUWIKI_ROOT, 'data', 'meta'))
-    makedirs(os.path.join(DOKUWIKI_ROOT, 'data', 'pages'))
+    makedirs(os.path.join(DOKUWIKI_ROOT, subdomain, 'data', 'attic'), exist_ok=True)
+    makedirs(os.path.join(DOKUWIKI_ROOT, subdomain, 'data', 'meta'), exist_ok=True)
+    makedirs(os.path.join(DOKUWIKI_ROOT, subdomain, 'data', 'pages'), exist_ok=True)
     pages = _load(subdomain, 'pages')
     tree = E.pages()
     node_by_id = {}
@@ -123,38 +126,43 @@ def main():
             title=page['page']['title'].encode('utf8'),
             body=page['page']['source'].encode('utf8'))
         # TODO: save private pages in a different path
-        _save('pages/{}.xhtml'.format(id_), xhtml)
+        _save(subdomain, 'pages/{}.xhtml'.format(id_), xhtml)
         # revisions
-        revisions = sorted(_load(subdomain, 'pages/{}/revisions'.format(id_)),
-                key=lambda _:_['revision']['date_created'])
-        data = []
-        for k, revision in enumerate(revisions):
-            description = revision['revision']['description']
-            revision = _load(subdomain, 'pages/{}/revisions/{}'.format(
-                id_, revision['revision']['identifier']))
-            m = re.match(r'^(?P<parsable>\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) '
-                r'(?P<tz_sign>[-+])(?P<tz_hour>\d{2})(?P<tz_minute>\d{2})$',
-                revision['revision']['date_created'])
-            # NOTE: strptime cannot parse timezone
-            timestamp = calendar.timegm(time.strptime(m.group('parsable'),
-                '%Y/%m/%d %H:%M:%S'))
-            delta = (int(m.group('tz_hour')) * 3600 +
-                    int(m.group('tz_minute')) * 60)
-            if m.group('tz_sign') == '-':
-                delta = -delta
-            timestamp += delta
-            data.append('\t'.join([
-                str(int(timestamp)),
-                '127.0.0.1',
-                'E' if k else 'C',  # for 'edit' and 'create' respectively
-                str(id_),
-                revision['revision']['creator'] or '',
-                description]))
-            source = revision['revision']['source'] or ''
-            with gzip.open(os.path.join(DOKUWIKI_ROOT, 'data', 'attic',
-                    '{}.{}.xhtml.gz'.format(id_, timestamp)), 'wb+') as f:
-                f.write(source.encode('utf8'))
-        _save('meta/{}.changes'.format(id_), '\n'.join(data))
+        revisions_data = _load(subdomain, 'pages/{}/revisions'.format(id_))
+        if revisions_data:
+            revisions = sorted(revisions_data,
+                    key=lambda _: _['revision']['date_created'])
+            data = []
+            for k, revision in enumerate(revisions):
+                description = revision['revision']['description']
+                revision = _load(subdomain, 'pages/{}/revisions/{}'.format(
+                    id_, revision['revision']['identifier']))
+                m = re.match(r'^(?P<parsable>\d{4}/\d{2}/\d{2} '
+                    r'\d{2}:\d{2}:\d{2}) '
+                    r'(?P<tz_sign>[-+])'
+                    r'(?P<tz_hour>\d{2})(?P<tz_minute>\d{2})$',
+                    revision['revision']['date_created'])
+                # NOTE: strptime cannot parse timezone
+                timestamp = calendar.timegm(time.strptime(m.group('parsable'),
+                    '%Y/%m/%d %H:%M:%S'))
+                delta = (int(m.group('tz_hour')) * 3600 +
+                        int(m.group('tz_minute')) * 60)
+                if m.group('tz_sign') == '-':
+                    delta = -delta
+                timestamp += delta
+                data.append('\t'.join([
+                    str(int(timestamp)),
+                    '127.0.0.1',
+                    'E' if k else 'C',  # for 'edit' and 'create' respectively
+                    str(id_),
+                    revision['revision']['creator'] or '',
+                    description]))
+                source = revision['revision']['source'] or ''
+                path = os.path.join(DOKUWIKI_ROOT, subdomain, 'data', 'attic',
+                        '{}.{}.xhtml.gz'.format(id_, timestamp))
+                with gzip.open(path, 'wb+') as f:
+                    f.write(source.encode('utf8'))
+            _save(subdomain, 'meta/{}.changes'.format(id_), '\n'.join(data))
 
         # TODO: attachments
         print(b'{} / {} pages'.format(i + 1, len(pages)))
@@ -181,7 +189,7 @@ def main():
         if node.tag != 'page':
             continue
         new_tree.append(node)
-    _save('meta/_tree.xml', lxml.etree.tostring(new_tree,
+    _save(subdomain, 'meta/_tree.xml', lxml.etree.tostring(new_tree,
         pretty_print=True, encoding='utf8'))
     # tree with public pages only
     for node in list(new_tree.getiterator()):
@@ -206,7 +214,7 @@ def main():
                 lost_and_found.append(child)
             node.getparent().remove(node)
     # TODO: Sort by title?
-    _save('pages/_tree.xml', lxml.etree.tostring(new_tree,
+    _save(subdomain, 'pages/_tree.xml', lxml.etree.tostring(new_tree,
         pretty_print=True, encoding='utf8'))
 
 

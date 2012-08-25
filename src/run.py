@@ -39,6 +39,7 @@ Choose option / 다음 중 선택하십시오:
             fetch_springnote.main()
             print("Completed.")
             input("Press enter key: ")
+            print welcome_message
         elif cmd in ['2']:
             convert_main()
             print welcome_message

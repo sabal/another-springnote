@@ -49,16 +49,21 @@ https://api.openmaru.com/delegate_key/springnote?app_id=71fcb7c8"""
         print("Connecting. Please wait...")
         self.api = Springnote(openid, key)
         print("Getting information...")
-        pages = json.loads(self.api._fetch('GET', '/pages.json').decode('ascii'))
+        pages = json.loads(
+            self.api._fetch('GET', '/pages.json').decode('ascii'))
         self.subdomain = re.search(r'(\w+).springnote.com',
                                    pages[0]['page']['uri']).group(1)
 
     def fetch(self, path, force=False):
         assert '..' not in path
+        cache_path, _, _ = path.partition('?')
         cache_path = os.path.normpath(
-            os.path.join(SAVE_PATH, self.subdomain) + path)
-        path += '?domain={}'.format(self.subdomain)
-        if os.access(cache_path, os.F_OK):
+            os.path.join(SAVE_PATH, self.subdomain) + cache_path)
+        if '?' in path:
+            path += '&domain={}'.format(self.subdomain)
+        else:
+            path += '?domain={}'.format(self.subdomain)
+        if not force and os.access(cache_path, os.F_OK):
             return open(cache_path, 'rb').read()
         makedirs(os.path.split(cache_path)[0], exist_ok=True)
         try:
@@ -70,8 +75,8 @@ https://api.openmaru.com/delegate_key/springnote?app_id=71fcb7c8"""
         open(cache_path, 'wb+').write(data)
         return data
 
-    def fetch_data(self, path):
-        return json.loads(self.fetch(path).decode('ascii'))
+    def fetch_data(self, path, force=False):
+        return json.loads(self.fetch(path, force=force).decode('ascii'))
 
 
 def main():
@@ -106,24 +111,36 @@ ID ({}) : """.format(bot.subdomain))
             'w+').write(note_description.strip().encode('utf8'))
     except:
         pass
-    pages = bot.fetch_data('/pages.json')
-    n_rev = n_att = 0
+    print("Downloading tags...")
+    bot.fetch('/tags.json', force=True)
+#    print("{} / {} tags".format(0, len(tags)))
+#    for i, entry in enumerate(tags):
+#        id_ = entry['tag']['identifier']
+#        bot.fetch('/tag/{}.json'.format(id_))
+#        print("{} / {} tags".format(i + 1, len(tags)))
+    pages = bot.fetch_data('/pages.json', force=True)
     print("{} / {} pages".format(0, len(pages)))
     for i, entry in enumerate(pages):
         id_ = entry['page']['identifier']
-        bot.fetch('/pages/{}.json'.format(id_))
+        force = False
+        data = bot.fetch_data('/pages/{}.json'.format(id_))
+        if data['page']['date_modified'] < entry['page']['date_modified']:
+            force = True
+            bot.fetch('/pages/{}.json'.format(id_), force=True)
         for resource in ['collaboration', 'comments']:
-            bot.fetch('/pages/{}/{}.json'.format(id_, resource))
-        data = bot.fetch('/pages/{}/attachments.json'.format(id_))
+            bot.fetch('/pages/{}/{}.json'.format(id_, resource), force=force)
+        data = bot.fetch('/pages/{}/attachments.json?n=4294967295'.format(id_),
+                         force=True)
         if data:
             attachments = json.loads(data.decode('ascii'))
             n = len(attachments)
             for k, _ in enumerate(attachments):
                 bot.fetch('/pages/{}/attachments/{}'.format(id_,
-                    _['attachment']['identifier']))
+                    _['attachment']['identifier']), force=force)
                 if (k + 1) % 5 == 0:
                     print("{} / {} attachments".format(k + 1, n))
-        data = bot.fetch('/pages/{}/revisions.json'.format(id_))
+        data = bot.fetch('/pages/{}/revisions.json?n=4294967295'.format(id_),
+                         force=True)
         if data:
             revisions = json.loads(data.decode('ascii'))
             n = len(revisions)
@@ -132,17 +149,12 @@ ID ({}) : """.format(bot.subdomain))
                     id_, _['revision']['identifier']))
                 if (k + 1) % 5 == 0:
                     print("{} / {} revisions".format(k + 1, n))
+            if n % 5:
+                print("{} / {} revisions".format(n, n))
         print("{} / {} pages complete - {}".format(
             i + 1, len(pages),
             entry['page']['title'].encode('utf8', 'replace')))
-    tags = json.loads(bot.fetch('/tags.json').decode('ascii'))
-    print("Converted contents at: {}".format(SAVE_PATH))
-    return
-    print("{} / {} tags".format(0, len(tags)))
-    for i, entry in enumerate(tags):
-        id_ = entry['tag']['identifier']
-        bot.fetch('/tag/{}.json'.format(id_))
-        print("{} / {} tags".format(i + 1, len(tags)))
+    print("Download finshed. Contents at: {}".format(SAVE_PATH))
 
 
 if __name__ == '__main__':

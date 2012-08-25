@@ -139,6 +139,8 @@ ID ({}) : """.format(bot.subdomain))
                     _['attachment']['identifier']), force=force)
                 if (k + 1) % 5 == 0:
                     print("{} / {} attachments".format(k + 1, n))
+            if n % 5:
+                print("{} / {} attachments".format(n, n))
         data = bot.fetch('/pages/{}/revisions.json?n=4294967295'.format(id_),
                          force=True)
         if data:

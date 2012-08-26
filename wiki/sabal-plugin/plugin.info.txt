@@ -1,7 +1,0 @@
-base   sabal
-author 1
-email  2
-date   2012-08-10
-name   sabal plugin
-desc   3
-url    http://example.com

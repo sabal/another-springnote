@@ -107,8 +107,8 @@ def deploy_dokuwiki(rel_path=None):
     git_export('wiki/dokuwiki', path)
 
     logging.info('Extracting sabal plugin...')
-    git_export('.', os.path.join(path, 'lib', 'plugins', 'sabal'),
-            filter_path='wiki/sabal-plugin/', strip=2)
+    git_export('wiki/dokuwiki-plugin-sabal',
+            os.path.join(path, 'lib', 'plugins', 'sabal'))
     if not IS_WINDOWS:
         # XXX
         cmd(['chmod', '-R', 'a+rx',

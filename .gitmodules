@@ -10,3 +10,6 @@
 [submodule "wiki/dokuwiki-template-dokubook"]
 	path = wiki/dokuwiki-template-dokubook
 	url = git://github.com/samfisch/dokuwiki-template-dokubook.git
+[submodule "wiki/dokuwiki-plugin-sabal"]
+	path = wiki/dokuwiki-plugin-sabal
+	url = git://github.com/sabal/dokuwiki-plugin-sabal.git

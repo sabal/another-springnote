@@ -153,7 +153,8 @@ class SpringnoteRequest:
                 result = response.read()
                 success = True
                 break
-            except socket.error as (errno, message):
+            except socket.error as e:
+                errno, message = e
                 for encoding in ['utf8', 'cp949']:
                     try:
                         message = string.decode(message)

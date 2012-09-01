@@ -2,16 +2,15 @@
 # coding: utf8
 from __future__ import print_function
 
-import calendar
 import gzip
 import json
 import os
-import re
-import time
 
 import lxml
 from lxml.builder import E
 # import phpserialize
+
+import util
 
 try:
     unicode
@@ -137,19 +136,8 @@ def main():
                 description = revision['revision']['description']
                 revision = _load(subdomain, 'pages/{}/revisions/{}'.format(
                     id_, revision['revision']['identifier']))
-                m = re.match(r'^(?P<parsable>\d{4}/\d{2}/\d{2} '
-                    r'\d{2}:\d{2}:\d{2}) '
-                    r'(?P<tz_sign>[-+])'
-                    r'(?P<tz_hour>\d{2})(?P<tz_minute>\d{2})$',
-                    revision['revision']['date_created'])
-                # NOTE: strptime cannot parse timezone
-                timestamp = calendar.timegm(time.strptime(m.group('parsable'),
-                    '%Y/%m/%d %H:%M:%S'))
-                delta = (int(m.group('tz_hour')) * 3600 +
-                        int(m.group('tz_minute')) * 60)
-                if m.group('tz_sign') == '-':
-                    delta = -delta
-                timestamp += delta
+                timestamp = util.parse_timestamp(
+                        revision['revision']['date_created'])
                 data.append('\t'.join([
                     str(int(timestamp)),
                     '127.0.0.1',

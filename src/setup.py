@@ -33,8 +33,9 @@ setup(
                 'idlelib.ScriptBinding',
                 'lxml._elementpath',
 
-                'convert_html',
                 'convert_dokuwiki_sabal',
+                'convert_html',
+                'convert_mediawiki',
                 'fetch_springnote',
             ],
         },

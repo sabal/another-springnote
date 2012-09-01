@@ -8,3 +8,4 @@ MOVE dist "Another Springnote"
 
 SET /P VERSION= < "Another Springnote/VERSION"
 "C:\Program Files\7-Zip\7z.exe" a -tzip -mx=9 "another-springnote-win32-%VERSION%-ko.zip" "Another Springnote"
+PAUSE

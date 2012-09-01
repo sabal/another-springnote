@@ -4,6 +4,9 @@ import os
 import re
 import time
 
+if '.exe' in __file__:  # XXX
+    import sys
+    __file__ = sys.argv[0]
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 

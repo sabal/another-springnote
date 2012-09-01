@@ -119,6 +119,7 @@ def main():
             n, len(pages), title.encode('utf8')))
     print("Not processing {} private pages".format(len(pages) - n))
     output_fp.write('</mediawiki>\n')
+    print("Converted XML at: {}".format(output_path))
 
 
 def sabal2mediawiki(source, id2title):

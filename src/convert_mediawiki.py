@@ -3,7 +3,6 @@
 from __future__ import print_function, unicode_literals
 
 import datetime
-import json
 import os
 import sys
 from urllib2 import unquote
@@ -35,25 +34,6 @@ XSLT = lxml.etree.XSLT(lxml.etree.parse(open(
         os.path.join(BASE_DIR, 'html2wiki.xsl'))))
 
 
-def makedirs(path, exist_ok=False):
-    try:
-        os.makedirs(path)
-    except OSError as e:
-        if not exist_ok:
-            raise
-        import errno
-        if e.errno not in [errno.EEXIST]:
-            raise
-
-
-def _save(path, data):
-    if isinstance(data, unicode):
-        data = data.encode('utf8')
-    path = os.path.join(SAVE_ROOT, os.path.normpath(path))
-    makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, 'wb+') as f:
-        f.write(data)
-
 
 def main():
     if not os.path.exists(os.path.join(BASE_DIR, '_api')):
@@ -72,7 +52,7 @@ def main():
                 ', '.join(sorted(dirs))))
 
     print("Initializing...")
-    makedirs(SAVE_ROOT, exist_ok=True)
+    util.makedirs(SAVE_ROOT, exist_ok=True)
 
     pages = util.load_resource(subdomain, 'pages')
     print("Converting XHTML to MediaWiki...")
@@ -157,6 +137,7 @@ def sabal2mediawiki(source, id2title):
     xhtml_tree = lxml.html.fromstring(xhtml.encode('utf8'))
     for li in xhtml_tree.xpath('//li'):
         for p in li.findall('p'):
+            p.addnext(E.br())
             p.drop_tag()
     for a in xhtml_tree.xpath('//a'):
         href = a.get('href')
@@ -180,11 +161,16 @@ def sabal2mediawiki(source, id2title):
                 'http://eq.springnote.com/tex_image?source=')
         if tex:
             tex = unquote(tex)
-            img.addprevious(E.span('$ {} $'.format(tex)))
+            img.addprevious(E.span('<math>{}</math>'.format(tex)))
             img.drop_tag()
+            continue
+        if img.get('class') == 'attachment':
+            img.addprevious(E.a(img.get('title', ''), href=src or 'attachments/error'))
+            continue
     wiki_text = unicode(XSLT(xhtml_tree))
     _, _, wiki_text = wiki_text.partition('html2wiki.xsl Wikitext Output')
     return wiki_text.strip()
+
 
 if __name__ == '__main__':
     main()

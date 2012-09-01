@@ -45,3 +45,14 @@ def is_public(subdomain, page_id):
                 item['collaboration']['rights_holder'] == 'everybody'):
             return True
     return False
+
+
+def makedirs(path, exist_ok=False):
+    try:
+        os.makedirs(path)
+    except OSError as e:
+        if not exist_ok:
+            raise
+        import errno
+        if e.errno not in [errno.EEXIST]:
+            raise

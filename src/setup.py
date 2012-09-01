@@ -42,6 +42,7 @@ setup(
     data_files=[
         ('.', (
             [
+                'html2wiki.xsl',
                 'run.py',
                 'sabal.css',
             ] +

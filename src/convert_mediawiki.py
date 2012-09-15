@@ -34,7 +34,6 @@ XSLT = lxml.etree.XSLT(lxml.etree.parse(open(
         os.path.join(BASE_DIR, 'html2wiki.xsl'))))
 
 
-
 def main():
     if not os.path.exists(os.path.join(BASE_DIR, '_api')):
         print("Springnote backup not found.")
@@ -56,16 +55,19 @@ def main():
 
     pages = util.load_resource(subdomain, 'pages')
     print("Converting XHTML to MediaWiki...")
-    output_path = os.path.join(SAVE_ROOT, '{}.xml'.format(subdomain))
-    output_fp = open(output_path, 'w+')
-    output_fp.write('<mediawiki>\n')
-    id2title = {str(_['page']['identifier']): _['page']['title'] for _ in pages}
+    output_paths = [
+        os.path.join(SAVE_ROOT, '{}.xml'.format(subdomain)),
+        os.path.join(SAVE_ROOT, '{}.private.xml'.format(subdomain))]
+    output_fp = [open(_, 'w+') for _ in output_paths]
+    for fp in output_fp:
+        fp.write('<mediawiki>\n')
+    id2title = {str(_['page']['identifier']): _['page']['title']
+            for _ in pages}
     n = 0
     titles = set()
     for entry in pages:
         id_ = entry['page']['identifier']
-        if not util.is_public(subdomain, id_):
-            continue
+        fp = output_fp[0] if util.is_public(subdomain, id_) else output_fp[1]
 
         page = util.load_resource(subdomain, 'pages/{}'.format(id_))
         title = page['page']['title']
@@ -86,40 +88,44 @@ def main():
                     key=lambda _: _['revision']['date_created'])
         else:
             revisions = []
-        output_fp.write('<page>\n')
-        output_fp.write(u'<title>{}</title>\n'.format(
+        fp.write('<page>\n')
+        fp.write(u'<title>{}</title>\n'.format(
             escape(new_title)).encode('utf-8'))
         wiki_text = ''
         for revision in revisions:
             timestamp = util.parse_timestamp(
                         revision['revision']['date_created'])
-            timestamp = datetime.datetime.utcfromtimestamp(timestamp).strftime(
-                    '%Y-%m-%dT%H:%M:%SZ')
+            timestamp = datetime.datetime.utcfromtimestamp(timestamp)\
+                    .strftime('%Y-%m-%dT%H:%M:%SZ')
             revision_data = util.load_resource(subdomain,
                 'pages/{}/revisions/{}'.format(
                     id_, revision['revision']['identifier']))
             source = revision_data['revision']['source']
             wiki_text = (sabal2mediawiki(source, id2title) if source
                     else wiki_text)  # previous revision
-            output_fp.write('<revision>\n')
-            output_fp.write('<timestamp>{}</timestamp>\n'.format(timestamp))
+            fp.write('<revision>\n')
+            fp.write('<timestamp>{}</timestamp>\n'.format(timestamp))
             if revision['revision'].get('creator'):
-                output_fp.write('<contributor><username>{}'
+                fp.write('<contributor><username>{}'
                     '</username></contributor>\n'.format(
                         escape(revision['revision']['creator'])))
             if revision['revision'].get('description'):
-                output_fp.write(u'<comment>{}</comment>\n'.format(
-                    escape(revision['revision']['description'])).encode('utf-8'))
-            output_fp.write(u'<text>{}</text>'
-                u'\n'.format(escape(wiki_text)).encode('utf-8'))
-            output_fp.write('</revision>\n')
-        output_fp.write('</page>\n')
+                fp.write(u'<comment>{}</comment>\n'\
+                    .format(escape(revision['revision']['description']))\
+                    .encode('utf-8'))
+            fp.write(u'<text>{}</text>\n'\
+                    .format(escape(wiki_text)).encode('utf-8'))
+            fp.write('</revision>\n')
+        fp.write('</page>\n')
         n += 1
         print(b"{} / {} pages - {}".format(
             n, len(pages), title.encode('utf8')))
-    print("Not processing {} private pages".format(len(pages) - n))
-    output_fp.write('</mediawiki>\n')
-    print("Converted XML at: {}".format(output_path))
+    for fp in output_fp:
+        fp.write('</mediawiki>')
+        fp.close()
+    print("Converted XML at:")
+    for _ in output_paths:
+        print(_)
 
 
 def sabal2mediawiki(source, id2title):
@@ -130,8 +136,7 @@ def sabal2mediawiki(source, id2title):
     xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://www.w3.org/1999/xhtml
-    http://www.w3.org/MarkUp/SCHEMA/xhtml11.xsd"
-    >
+    http://www.w3.org/MarkUp/SCHEMA/xhtml11.xsd">
 <head></head>
 <body>{}</body>
 </html>'''.format(source)
@@ -166,7 +171,8 @@ def sabal2mediawiki(source, id2title):
             img.drop_tag()
             continue
         if img.get('class') == 'attachment':
-            img.addprevious(E.a(img.get('title', ''), href=src or 'attachments/error'))
+            img.addprevious(E.a(img.get('title', ''),
+                href=src or 'attachments/error'))
             continue
     wiki_text = unicode(XSLT(xhtml_tree))
     _, _, wiki_text = wiki_text.partition('html2wiki.xsl Wikitext Output')
